@@ -165,7 +165,11 @@ def send_telegram(words, ip, user_agent):
     print("=" * 60)
 
 # =========================================================
-# ✅ Cloudflare Worker 入口
+# ✅ Cloudflare Worker 入口（Render 不需要这个，但保留无害）
+# =========================================================
+
+def fetch(request):
+    return app(request)
 # =========================================================
 
 def fetch(request):
